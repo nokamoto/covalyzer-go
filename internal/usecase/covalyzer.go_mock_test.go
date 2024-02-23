@@ -40,31 +40,68 @@ func (m *Mockgh) EXPECT() *MockghMockRecorder {
 }
 
 // Checkout mocks base method.
-func (m *Mockgh) Checkout(dir, timestamp string, repo *v1.Repository) (*v1.Commit, error) {
+func (m *Mockgh) Checkout(repo *v1.Repository, timestamp string) (*v1.Commit, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Checkout", dir, timestamp, repo)
+	ret := m.ctrl.Call(m, "Checkout", repo, timestamp)
 	ret0, _ := ret[0].(*v1.Commit)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Checkout indicates an expected call of Checkout.
-func (mr *MockghMockRecorder) Checkout(dir, timestamp, repo any) *gomock.Call {
+func (mr *MockghMockRecorder) Checkout(repo, timestamp any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Checkout", reflect.TypeOf((*Mockgh)(nil).Checkout), dir, timestamp, repo)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Checkout", reflect.TypeOf((*Mockgh)(nil).Checkout), repo, timestamp)
 }
 
 // Clone mocks base method.
-func (m *Mockgh) Clone(arg0 *v1.Repository) (string, error) {
+func (m *Mockgh) Clone(arg0 *v1.Repository) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Clone", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Clone indicates an expected call of Clone.
 func (mr *MockghMockRecorder) Clone(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Clone", reflect.TypeOf((*Mockgh)(nil).Clone), arg0)
+}
+
+// Mockgotool is a mock of gotool interface.
+type Mockgotool struct {
+	ctrl     *gomock.Controller
+	recorder *MockgotoolMockRecorder
+}
+
+// MockgotoolMockRecorder is the mock recorder for Mockgotool.
+type MockgotoolMockRecorder struct {
+	mock *Mockgotool
+}
+
+// NewMockgotool creates a new mock instance.
+func NewMockgotool(ctrl *gomock.Controller) *Mockgotool {
+	mock := &Mockgotool{ctrl: ctrl}
+	mock.recorder = &MockgotoolMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *Mockgotool) EXPECT() *MockgotoolMockRecorder {
+	return m.recorder
+}
+
+// Cover mocks base method.
+func (m *Mockgotool) Cover(repo *v1.Repository) (*v1.Cover, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Cover", repo)
+	ret0, _ := ret[0].(*v1.Cover)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Cover indicates an expected call of Cover.
+func (mr *MockgotoolMockRecorder) Cover(repo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cover", reflect.TypeOf((*Mockgotool)(nil).Cover), repo)
 }
