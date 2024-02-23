@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/nokamoto/covalyzer-go/internal/infra/command"
 	"github.com/nokamoto/covalyzer-go/internal/usecase"
@@ -13,35 +11,31 @@ import (
 )
 
 type GitHub struct {
-	wd string
+	wd command.WorkingDir
 }
 
-func NewGitHub() (*GitHub, error) {
-	wd, err := os.MkdirTemp("", "covalyzer")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a temporary directory: %w", err)
-	}
+func NewGitHub(wd command.WorkingDir) (*GitHub, error) {
 	return &GitHub{
 		wd: wd,
 	}, nil
 }
 
-func (g *GitHub) Clone(repo *v1.Repository) (string, error) {
+func (g *GitHub) Clone(repo *v1.Repository) error {
 	github := repo.GetGh()
 	if github != "" {
 		github = fmt.Sprintf("%s/", github)
 	}
 	arg := fmt.Sprintf("%s%s/%s", github, repo.GetOwner(), repo.GetRepo())
-	if err := command.Run("gh", "repo", "clone", arg)(command.WithDir(g.wd)); err != nil {
-		return "", err
+	if err := command.Run("gh", "repo", "clone", arg)(g.wd.WithDir()); err != nil {
+		return err
 	}
-	return filepath.Join(g.wd, repo.GetRepo()), nil
+	return nil
 }
 
-func (g *GitHub) recentCommit(dir, timestamp string, repo *v1.Repository) (*v1.Commit, error) {
+func (g *GitHub) recentCommit(repo *v1.Repository, timestamp string) (*v1.Commit, error) {
 	var res bytes.Buffer
 	api := fmt.Sprintf("/repos/%s/%s/commits?per_page=1&until=%s", repo.GetOwner(), repo.GetRepo(), timestamp)
-	if err := command.Run("gh", "api", api)(command.WithDir(dir), command.WithStdout(&res)); err != nil {
+	if err := command.Run("gh", "api", api)(g.wd.WithRepoDir(repo), command.WithStdout(&res)); err != nil {
 		return nil, err
 	}
 	type commit struct {
@@ -62,13 +56,12 @@ func (g *GitHub) recentCommit(dir, timestamp string, repo *v1.Repository) (*v1.C
 	return nil, fmt.Errorf("unexpected commits: %v", commits)
 }
 
-func (g *GitHub) Checkout(dir, timestamp string, repo *v1.Repository) (*v1.Commit, error) {
-	commit, err := g.recentCommit(dir, timestamp, repo)
+func (g *GitHub) Checkout(repo *v1.Repository, timestamp string) (*v1.Commit, error) {
+	commit, err := g.recentCommit(repo, timestamp)
 	if err != nil {
 		return nil, err
 	}
-	wd := fmt.Sprintf("%s/%s", g.wd, repo.GetRepo())
-	if err := command.Run("git", "checkout", commit.GetSha())(command.WithDir(wd)); err != nil {
+	if err := command.Run("git", "checkout", commit.GetSha())(g.wd.WithRepoDir(repo)); err != nil {
 		return nil, err
 	}
 	return commit, nil

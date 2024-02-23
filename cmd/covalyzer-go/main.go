@@ -4,8 +4,10 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/nokamoto/covalyzer-go/internal/infra/command"
 	"github.com/nokamoto/covalyzer-go/internal/infra/config"
 	"github.com/nokamoto/covalyzer-go/internal/infra/gh"
+	"github.com/nokamoto/covalyzer-go/internal/infra/gotool"
 	"github.com/nokamoto/covalyzer-go/internal/usecase"
 )
 
@@ -23,14 +25,25 @@ func main() {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
-	gh, err := gh.NewGitHub()
+
+	wd, err := command.NewWorkingDir()
+	if err != nil {
+		slog.Error("failed to create a working directory", "error", err)
+		os.Exit(1)
+	}
+
+	gh, err := gh.NewGitHub(wd)
 	if err != nil {
 		slog.Error("failed to create a GitHub client", "error", err)
 		os.Exit(1)
 	}
-	err = usecase.NewCovalyzer(config, gh).Run()
+	gt := gotool.NewGoTool(wd)
+
+	res, err := usecase.NewCovalyzer(config, gh, gt).Run()
 	if err != nil {
 		slog.Error("failed to run", "error", err)
 		os.Exit(1)
 	}
+	slog.Info("coverage", "coverage", res)
+	wd.Clean()
 }

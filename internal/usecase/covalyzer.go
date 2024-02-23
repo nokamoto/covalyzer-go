@@ -4,7 +4,6 @@ package usecase
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
 )
@@ -14,48 +13,68 @@ var (
 )
 
 type gh interface {
-	// Clone clones a repository and returns the path to the cloned repository.
-	Clone(*v1.Repository) (string, error)
+	// Clone clones a repository.
+	Clone(*v1.Repository) error
 	// Checkout checks out a repository at a specific timestamp and returns the commit.
 	// The commit is the most recent commit before the timestamp.
 	//
 	// If the commit is not found for the timestamp, it should return ErrCommitNotFound.
-	Checkout(dir string, timestamp string, repo *v1.Repository) (*v1.Commit, error)
+	Checkout(repo *v1.Repository, timestamp string) (*v1.Commit, error)
+}
+
+type gotool interface {
+	// Cover tests a repository and returns the coverage.
+	Cover(repo *v1.Repository) (*v1.Cover, error)
 }
 
 type Covalyzer struct {
 	config *v1.Config
 	gh     gh
+	gotool gotool
 }
 
-func NewCovalyzer(config *v1.Config, gh gh) *Covalyzer {
+func NewCovalyzer(config *v1.Config, gh gh, gotool gotool) *Covalyzer {
 	return &Covalyzer{
 		config: config,
 		gh:     gh,
+		gotool: gotool,
 	}
 }
 
-func (c *Covalyzer) Run() error {
+func (c *Covalyzer) Run() (*v1.Covalyzer, error) {
+	var res v1.Covalyzer
 	for _, repo := range c.config.GetRepositories() {
-		logger := slog.With("repo", repo)
-		dir, err := c.gh.Clone(repo)
-		if err != nil {
-			logger.Error("failed to clone", "error", err)
-			return fmt.Errorf("failed to clone %v: %w", repo, err)
+		rc := v1.RepositoryCoverages{
+			Repository: repo,
 		}
-		slog.Info("cloned", "dir", dir)
+		err := c.gh.Clone(repo)
+		if err != nil {
+			return nil, fmt.Errorf("failed to clone %v: %w", repo, err)
+		}
+
 		for _, ts := range c.config.GetTimestamps() {
-			commit, err := c.gh.Checkout(dir, ts, repo)
+			commit, err := c.gh.Checkout(repo, ts)
 			if errors.Is(err, ErrCommitNotFound) {
-				logger.Warn("commit not found", "timestamp", ts)
+				rc.Coverages = append(rc.Coverages, &v1.Coverage{
+					Commit: commit,
+				})
 				continue
 			}
 			if err != nil {
-				logger.Error("failed to checkout", "error", err)
-				return fmt.Errorf("failed to checkout %v: %w", ts, err)
+				return nil, fmt.Errorf("failed to checkout %v: %w", ts, err)
 			}
-			slog.Info("checked out", "commit", commit)
+
+			cover, err := c.gotool.Cover(repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to test %v: %w", commit, err)
+			}
+
+			rc.Coverages = append(rc.Coverages, &v1.Coverage{
+				Commit: commit,
+				Cover:  cover,
+			})
 		}
+		res.Repositories = append(res.Repositories, &rc)
 	}
-	return nil
+	return &res, nil
 }
