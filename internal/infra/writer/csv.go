@@ -9,10 +9,14 @@ import (
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
 )
 
-type CSVWriter struct{}
+type CSVWriter struct {
+	file string
+}
 
 func NewCSVWriter() *CSVWriter {
-	return &CSVWriter{}
+	return &CSVWriter{
+		file: "covalyzer.csv",
+	}
 }
 
 func (c *CSVWriter) Write(config *v1.Config, data *v1.Covalyzer) error {
@@ -38,7 +42,7 @@ func (c *CSVWriter) Write(config *v1.Config, data *v1.Covalyzer) error {
 		rows = append(rows, row)
 	}
 
-	file, err := os.Create("covalyzer.csv")
+	file, err := os.Create(c.file)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
