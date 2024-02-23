@@ -8,6 +8,7 @@ import (
 	"github.com/nokamoto/covalyzer-go/internal/infra/config"
 	"github.com/nokamoto/covalyzer-go/internal/infra/gh"
 	"github.com/nokamoto/covalyzer-go/internal/infra/gotool"
+	"github.com/nokamoto/covalyzer-go/internal/infra/writer"
 	"github.com/nokamoto/covalyzer-go/internal/usecase"
 )
 
@@ -46,4 +47,10 @@ func main() {
 	}
 	slog.Info("coverage", "coverage", res)
 	wd.Clean()
+
+	w := writer.NewCSVWriter()
+	if err := w.Write(config, res); err != nil {
+		slog.Error("failed to write", "error", err)
+		os.Exit(1)
+	}
 }
