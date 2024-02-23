@@ -3,6 +3,8 @@ package main
 import (
 	"slices"
 	"strings"
+
+	"github.com/nokamoto/covalyzer-go/internal/util/xslices"
 )
 
 func Build() error {
@@ -24,7 +26,7 @@ func Build() error {
 		then("go", "install", "go.uber.org/mock/mockgen@latest").
 		then("go", "generate", "./...").
 		then("go", "mod", "download").
-		thenV("go", append([]string{"test"}, ginkgoExcluded...)...).
+		thenV("go", xslices.Concat("test", ginkgoExcluded)...).
 		then("go", "mod", "tidy").
 		run()
 }
@@ -44,9 +46,8 @@ func E2e() error {
 	ginkgoOnly := slices.DeleteFunc(list, func(s string) bool {
 		return !strings.Contains(s, "covalyzer-go-test")
 	})
-	ginkgoOnly = append(ginkgoOnly, "--ginkgo.label-filter=!fail", "-v")
 
 	return do("go", "install", "./cmd/covalyzer-go").
-		thenV("go", append([]string{"test"}, ginkgoOnly...)...).
+		thenV("go", xslices.Concat("test", ginkgoOnly, "--ginkgo.label-filter=!fail", "-v")...).
 		run()
 }
