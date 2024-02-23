@@ -1,20 +1,13 @@
-//go:build mage
-
 package main
 
-import (
-	"github.com/magefile/mage/sh"
-)
-
 func Build() error {
-	if err := sh.Run("go", "install", "golang.org/x/tools/cmd/goimports@latest"); err != nil {
-		return err
-	}
-	if err := sh.Run("goimports", "-w", "."); err != nil {
-		return err
-	}
-	if err := sh.Run("go", "mod", "download"); err != nil {
-		return err
-	}
-	return sh.Run("go", "mod", "tidy")
+	return do("go", "install", "golang.org/x/tools/cmd/goimports@latest").
+		then("goimports", "-w", ".").
+		then("go", "install", "github.com/bufbuild/buf/cmd/buf@v1.29.0").
+		then("go", "install", "google.golang.org/protobuf/cmd/protoc-gen-go@v1.31.0").
+		then("buf", "format", "-w").
+		then("buf", "generate").
+		then("go", "mod", "download").
+		then("go", "mod", "tidy").
+		run()
 }

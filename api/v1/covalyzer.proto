@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package api.v1;
+
+import "api/v1/config.proto";
+
+option go_package = "github.com/nokamoto/covalyzer-go/api/v1";
+
+message Commit {
+  string sha = 1;
+}
+
+message Cover {
+  float total = 1;
+}
+
+message Coverage {
+  Commit commit = 1;
+  Cover cover = 2;
+}
+
+message RepositoryCoverages {
+  Repository repository = 1;
+  repeated Coverage coverages = 2;
+}
+
+message Covalyzer {
+  repeated RepositoryCoverages repositories = 1;
+}
