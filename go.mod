@@ -12,5 +12,3 @@ require (
 	go.uber.org/mock v0.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-require golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
