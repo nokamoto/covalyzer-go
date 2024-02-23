@@ -8,7 +8,7 @@ type shell struct {
 	cmd  string
 	args []string
 	v    bool
-	env map[string]string
+	env  map[string]string
 }
 
 type shells []shell
