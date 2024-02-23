@@ -17,3 +17,4 @@ jobs:
         go-version-file: 'go.mod'
     - run: .devcontainer/install.sh
     - run: mage build
+    - run: git diff --exit-code
