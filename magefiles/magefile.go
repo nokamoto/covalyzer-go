@@ -8,6 +8,7 @@ func Build() error {
 		then("buf", "format", "-w").
 		then("buf", "generate").
 		then("go", "mod", "download").
+		thenV("go", "test", "./...").
 		then("go", "mod", "tidy").
 		run()
 }
