@@ -7,6 +7,8 @@ func Build() error {
 		then("go", "install", "google.golang.org/protobuf/cmd/protoc-gen-go@v1.31.0").
 		then("buf", "format", "-w").
 		then("buf", "generate").
+		then("go", "install", "go.uber.org/mock/mockgen@latest").
+		then("go", "generate", "./...").
 		then("go", "mod", "download").
 		thenV("go", "test", "./...").
 		then("go", "mod", "tidy").
