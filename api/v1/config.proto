@@ -12,5 +12,6 @@ message Repository {
 
 message Config {
   repeated Repository repositories = 1;
+  // This is a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ.
   repeated string timestamps = 2;
 }

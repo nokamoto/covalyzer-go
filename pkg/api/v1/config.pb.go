@@ -89,7 +89,8 @@ type Config struct {
 	unknownFields protoimpl.UnknownFields
 
 	Repositories []*Repository `protobuf:"bytes,1,rep,name=repositories,proto3" json:"repositories,omitempty"`
-	Timestamps   []string      `protobuf:"bytes,2,rep,name=timestamps,proto3" json:"timestamps,omitempty"`
+	// This is a timestamp in ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ.
+	Timestamps []string `protobuf:"bytes,2,rep,name=timestamps,proto3" json:"timestamps,omitempty"`
 }
 
 func (x *Config) Reset() {
