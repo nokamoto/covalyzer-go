@@ -15,6 +15,8 @@ func Test_NewConfig(t *testing.T) {
 repositories:
 - owner: foo
   repo: bar
+  ginkgo_packages:
+  - baz
 timestamps:
 - 2024-01-01T00:00:00Z
 `
@@ -28,6 +30,9 @@ timestamps:
 			{
 				Owner: "foo",
 				Repo:  "bar",
+				GinkgoPackages: []string{
+					"baz",
+				},
 			},
 		},
 		Timestamps: []string{

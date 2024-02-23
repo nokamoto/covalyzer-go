@@ -5,10 +5,12 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/nokamoto/covalyzer-go/internal/infra/command"
+	"github.com/nokamoto/covalyzer-go/internal/util/xslices"
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
 )
 
@@ -22,9 +24,38 @@ func NewGoTool(wd command.WorkingDir) *GoTool {
 	}
 }
 
+func (g *GoTool) testPackages(repo *v1.Repository) ([]string, error) {
+	var buf bytes.Buffer
+	if err := command.Run("go", "list", "-f", "{{.Dir}}", "./...")(g.wd.WithRepoDir(repo), command.WithStdout(&buf)); err != nil {
+		return nil, err
+	}
+	var pkgs []string
+	scan := bufio.NewScanner(&buf)
+	for scan.Scan() {
+		pkgs = append(pkgs, scan.Text())
+	}
+	if err := scan.Err(); err != nil {
+		return nil, fmt.Errorf("failed to scan: %w", err)
+	}
+	pkgs = slices.DeleteFunc(pkgs, func(s string) bool {
+		for _, ginkgo := range repo.GetGinkgoPackages() {
+			if strings.Contains(s, ginkgo) {
+				return true
+			}
+		}
+		return false
+	})
+	return pkgs, nil
+}
+
 func (g *GoTool) Cover(repo *v1.Repository) (*v1.Cover, error) {
+	list, err := g.testPackages(repo)
+	if err != nil {
+		return nil, err
+	}
+
 	const out = "c.out"
-	if err := command.Run("go", "test", "-coverprofile", out, "./...")(g.wd.WithRepoDir(repo)); err != nil {
+	if err := command.Run("go", xslices.Concat("test", "-coverprofile", out, list)...)(g.wd.WithRepoDir(repo)); err != nil {
 		return nil, err
 	}
 	var buf bytes.Buffer

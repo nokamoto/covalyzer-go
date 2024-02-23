@@ -8,6 +8,7 @@ message Repository {
   string gh = 1;
   string owner = 2;
   string repo = 3;
+  repeated string ginkgo_packages = 4;
 }
 
 message Config {
