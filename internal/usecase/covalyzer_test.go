@@ -26,13 +26,13 @@ func TestCovalyzer_Run(t *testing.T) {
 		{
 			name: "ok",
 			mock: func(m *Mockgh) {
-				m.EXPECT().Clone(config.GetRepositories()[0]).Return(nil)
+				m.EXPECT().Clone(config.GetRepositories()[0]).Return("", nil)
 			},
 		},
 		{
 			name: "failed to clone",
 			mock: func(m *Mockgh) {
-				m.EXPECT().Clone(gomock.Any()).Return(internalErr)
+				m.EXPECT().Clone(gomock.Any()).Return("", internalErr)
 			},
 			wantErr: internalErr,
 		},
