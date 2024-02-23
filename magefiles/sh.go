@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/magefile/mage/sh"
 )
 
@@ -53,4 +55,12 @@ func (ss shells) run() error {
 		}
 	}
 	return nil
+}
+
+func golist() ([]string, error) {
+	s, err := sh.Output("go", "list", "-f", "{{.Dir}}", "./...")
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(s, "\n"), nil
 }

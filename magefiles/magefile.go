@@ -1,6 +1,20 @@
 package main
 
+import (
+	"slices"
+	"strings"
+)
+
 func Build() error {
+	list, err := golist()
+	if err != nil {
+		return err
+	}
+
+	ginkgoExcluded := slices.DeleteFunc(list, func(s string) bool {
+		return strings.Contains(s, "covalyzer-go-test")
+	})
+
 	return do("go", "install", "golang.org/x/tools/cmd/goimports@latest").
 		then("goimports", "-w", ".").
 		then("go", "install", "github.com/bufbuild/buf/cmd/buf@v1.29.0").
@@ -10,7 +24,7 @@ func Build() error {
 		then("go", "install", "go.uber.org/mock/mockgen@latest").
 		then("go", "generate", "./...").
 		then("go", "mod", "download").
-		thenV("go", "test", "./...").
+		thenV("go", append([]string{"test"}, ginkgoExcluded...)...).
 		then("go", "mod", "tidy").
 		run()
 }
@@ -18,5 +32,21 @@ func Build() error {
 func Install() error {
 	return do("go", "install", "./cmd/covalyzer-go").
 		thenWith(map[string]string{"DEBUG": "1"}, "covalyzer-go").
+		run()
+}
+
+func E2e() error {
+	list, err := golist()
+	if err != nil {
+		return err
+	}
+
+	ginkgoOnly := slices.DeleteFunc(list, func(s string) bool {
+		return !strings.Contains(s, "covalyzer-go-test")
+	})
+	ginkgoOnly = append(ginkgoOnly, "--ginkgo.label-filter=!fail", "-v")
+
+	return do("go", "install", "./cmd/covalyzer-go").
+		thenV("go", append([]string{"test"}, ginkgoOnly...)...).
 		run()
 }

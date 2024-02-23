@@ -21,7 +21,12 @@ func main() {
 		Level: level,
 	})))
 
-	config, err := config.NewConfig("config.yaml")
+	configYAML := os.Getenv("CONFIG_YAML")
+	if configYAML == "" {
+		configYAML = "config.yaml"
+	}
+
+	config, err := config.NewConfig(configYAML)
 	if err != nil {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
