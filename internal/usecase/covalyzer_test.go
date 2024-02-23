@@ -16,8 +16,15 @@ func TestCovalyzer_Run(t *testing.T) {
 				Owner: "foo",
 				Repo:  "bar",
 			},
+			{
+				Owner: "baz",
+				Repo:  "qux",
+			},
 		},
+		Timestamps: []string{"0", "1"},
 	}
+	r0 := config.GetRepositories()[0]
+	r1 := config.GetRepositories()[1]
 	tests := []struct {
 		name    string
 		mock    func(*Mockgh)
@@ -26,7 +33,12 @@ func TestCovalyzer_Run(t *testing.T) {
 		{
 			name: "ok",
 			mock: func(m *Mockgh) {
-				m.EXPECT().Clone(config.GetRepositories()[0]).Return("", nil)
+				m.EXPECT().Clone(r0).Return("dir1", nil)
+				m.EXPECT().Clone(r1).Return("dir2", nil)
+				m.EXPECT().Checkout("dir1", "0", r0).Return(&v1.Commit{}, nil)
+				m.EXPECT().Checkout("dir1", "1", r0).Return(&v1.Commit{}, nil)
+				m.EXPECT().Checkout("dir2", "0", r1).Return(&v1.Commit{}, nil)
+				m.EXPECT().Checkout("dir2", "1", r1).Return(&v1.Commit{}, nil)
 			},
 		},
 		{
@@ -35,6 +47,25 @@ func TestCovalyzer_Run(t *testing.T) {
 				m.EXPECT().Clone(gomock.Any()).Return("", internalErr)
 			},
 			wantErr: internalErr,
+		},
+		{
+			name: "failed to checkout",
+			mock: func(m *Mockgh) {
+				m.EXPECT().Clone(gomock.Any()).Return("", nil)
+				m.EXPECT().Checkout(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, internalErr)
+			},
+			wantErr: internalErr,
+		},
+		{
+			name: "continue on commit not found",
+			mock: func(m *Mockgh) {
+				m.EXPECT().Clone(r0).Return("dir1", nil)
+				m.EXPECT().Clone(r1).Return("dir2", nil)
+				m.EXPECT().Checkout("dir1", "0", r0).Return(&v1.Commit{}, nil)
+				m.EXPECT().Checkout("dir1", "1", r0).Return(nil, ErrCommitNotFound)
+				m.EXPECT().Checkout("dir2", "0", r1).Return(&v1.Commit{}, nil)
+				m.EXPECT().Checkout("dir2", "1", r1).Return(&v1.Commit{}, nil)
+			},
 		},
 	}
 	for _, tt := range tests {

@@ -39,6 +39,21 @@ func (m *Mockgh) EXPECT() *MockghMockRecorder {
 	return m.recorder
 }
 
+// Checkout mocks base method.
+func (m *Mockgh) Checkout(dir, timestamp string, repo *v1.Repository) (*v1.Commit, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Checkout", dir, timestamp, repo)
+	ret0, _ := ret[0].(*v1.Commit)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Checkout indicates an expected call of Checkout.
+func (mr *MockghMockRecorder) Checkout(dir, timestamp, repo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Checkout", reflect.TypeOf((*Mockgh)(nil).Checkout), dir, timestamp, repo)
+}
+
 // Clone mocks base method.
 func (m *Mockgh) Clone(arg0 *v1.Repository) (string, error) {
 	m.ctrl.T.Helper()
