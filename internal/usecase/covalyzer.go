@@ -9,7 +9,8 @@ import (
 )
 
 type gh interface {
-	Clone(*v1.Repository) error
+	// Clone clones a repository and returns the path to the cloned repository.
+	Clone(*v1.Repository) (string, error)
 }
 
 type Covalyzer struct {
@@ -27,11 +28,12 @@ func NewCovalyzer(config *v1.Config, gh gh) *Covalyzer {
 func (c *Covalyzer) Run() error {
 	for _, repo := range c.config.GetRepositories() {
 		logger := slog.With("repo", repo)
-		logger.Info("run")
-		if err := c.gh.Clone(repo); err != nil {
+		dir, err := c.gh.Clone(repo)
+		if err != nil {
 			logger.Error("failed to clone", "error", err)
 			return fmt.Errorf("failed to clone %v: %w", repo, err)
 		}
+		slog.Info("cloned", "dir", dir)
 	}
 	return nil
 }

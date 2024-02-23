@@ -14,3 +14,9 @@ func Build() error {
 		then("go", "mod", "tidy").
 		run()
 }
+
+func Install() error {
+	return do("go", "install", "./cmd/covalyzer-go").
+		thenWith(map[string]string{"DEBUG": "1"}, "covalyzer-go").
+		run()
+}
