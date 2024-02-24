@@ -42,30 +42,38 @@ func TestCovalyzer_Run(t *testing.T) {
 				gh.EXPECT().Checkout(r0, "0").Return(&v1.Commit{
 					Sha: "sha0",
 				}, nil)
-				gt.EXPECT().Cover(r0).Return(&v1.Cover{
-					Total: 0.1,
+				gt.EXPECT().CoverTotal(r0).Return(float32(0.1), nil)
+				gt.EXPECT().CoverGinkgoOutline(r0).Return([]*v1.GinkgoOutlineCover{
+					{
+						File: "file0",
+					},
 				}, nil)
+				gt.EXPECT().CoverGinkgoReport(r0).Return(nil, nil)
 
 				gh.EXPECT().Checkout(r0, "1").Return(&v1.Commit{
 					Sha: "sha1",
 				}, nil)
-				gt.EXPECT().Cover(r0).Return(&v1.Cover{
-					Total: 0.2,
+				gt.EXPECT().CoverTotal(r0).Return(float32(0.2), nil)
+				gt.EXPECT().CoverGinkgoOutline(r0).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(r0).Return([]*v1.GinkgoReportCover{
+					{
+						Package: "package1",
+					},
 				}, nil)
 
 				gh.EXPECT().Checkout(r1, "0").Return(&v1.Commit{
 					Sha: "sha2",
 				}, nil)
-				gt.EXPECT().Cover(r1).Return(&v1.Cover{
-					Total: 0.3,
-				}, nil)
+				gt.EXPECT().CoverTotal(r1).Return(float32(0.3), nil)
+				gt.EXPECT().CoverGinkgoOutline(r1).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(r1).Return(nil, nil)
 
 				gh.EXPECT().Checkout(r1, "1").Return(&v1.Commit{
 					Sha: "sha3",
 				}, nil)
-				gt.EXPECT().Cover(r1).Return(&v1.Cover{
-					Total: 0.4,
-				}, nil)
+				gt.EXPECT().CoverTotal(r1).Return(float32(0.4), nil)
+				gt.EXPECT().CoverGinkgoOutline(r1).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(r1).Return(nil, nil)
 			},
 			want: &v1.Covalyzer{
 				Repositories: []*v1.RepositoryCoverages{
@@ -78,6 +86,11 @@ func TestCovalyzer_Run(t *testing.T) {
 								},
 								Cover: &v1.Cover{
 									Total: 0.1,
+									GinkgoOutlines: []*v1.GinkgoOutlineCover{
+										{
+											File: "file0",
+										},
+									},
 								},
 							},
 							{
@@ -86,6 +99,11 @@ func TestCovalyzer_Run(t *testing.T) {
 								},
 								Cover: &v1.Cover{
 									Total: 0.2,
+									GinkgoReports: []*v1.GinkgoReportCover{
+										{
+											Package: "package1",
+										},
+									},
 								},
 							},
 						},
@@ -130,11 +148,32 @@ func TestCovalyzer_Run(t *testing.T) {
 			wantErr: internalErr,
 		},
 		{
-			name: "failed to test",
+			name: "failed to analyze go tool cover",
 			mock: func(gh *Mockgh, gt *Mockgotool) {
 				gh.EXPECT().Clone(gomock.Any()).Return(nil)
 				gh.EXPECT().Checkout(gomock.Any(), gomock.Any()).Return(&v1.Commit{}, nil)
-				gt.EXPECT().Cover(gomock.Any()).Return(nil, internalErr)
+				gt.EXPECT().CoverTotal(gomock.Any()).Return(float32(0), internalErr)
+			},
+			wantErr: internalErr,
+		},
+		{
+			name: "failed to analyze ginkgo outline",
+			mock: func(gh *Mockgh, gt *Mockgotool) {
+				gh.EXPECT().Clone(gomock.Any()).Return(nil)
+				gh.EXPECT().Checkout(gomock.Any(), gomock.Any()).Return(&v1.Commit{}, nil)
+				gt.EXPECT().CoverTotal(gomock.Any()).Return(float32(0), nil)
+				gt.EXPECT().CoverGinkgoOutline(gomock.Any()).Return(nil, internalErr)
+			},
+			wantErr: internalErr,
+		},
+		{
+			name: "failed to analyze ginkgo run",
+			mock: func(gh *Mockgh, gt *Mockgotool) {
+				gh.EXPECT().Clone(gomock.Any()).Return(nil)
+				gh.EXPECT().Checkout(gomock.Any(), gomock.Any()).Return(&v1.Commit{}, nil)
+				gt.EXPECT().CoverTotal(gomock.Any()).Return(float32(0), nil)
+				gt.EXPECT().CoverGinkgoOutline(gomock.Any()).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(gomock.Any()).Return(nil, internalErr)
 			},
 			wantErr: internalErr,
 		},
@@ -149,23 +188,23 @@ func TestCovalyzer_Run(t *testing.T) {
 				gh.EXPECT().Checkout(r0, "1").Return(&v1.Commit{
 					Sha: "sha1",
 				}, nil)
-				gt.EXPECT().Cover(r0).Return(&v1.Cover{
-					Total: 0.2,
-				}, nil)
+				gt.EXPECT().CoverTotal(r0).Return(float32(0.2), nil)
+				gt.EXPECT().CoverGinkgoOutline(r0).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(r0).Return(nil, nil)
 
 				gh.EXPECT().Checkout(r1, "0").Return(&v1.Commit{
 					Sha: "sha2",
 				}, nil)
-				gt.EXPECT().Cover(r1).Return(&v1.Cover{
-					Total: 0.3,
-				}, nil)
+				gt.EXPECT().CoverTotal(r1).Return(float32(0.3), nil)
+				gt.EXPECT().CoverGinkgoOutline(r1).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(r1).Return(nil, nil)
 
 				gh.EXPECT().Checkout(r1, "1").Return(&v1.Commit{
 					Sha: "sha3",
 				}, nil)
-				gt.EXPECT().Cover(r1).Return(&v1.Cover{
-					Total: 0.4,
-				}, nil)
+				gt.EXPECT().CoverTotal(r1).Return(float32(0.4), nil)
+				gt.EXPECT().CoverGinkgoOutline(r1).Return(nil, nil)
+				gt.EXPECT().CoverGinkgoReport(r1).Return(nil, nil)
 			},
 			want: &v1.Covalyzer{
 				Repositories: []*v1.RepositoryCoverages{

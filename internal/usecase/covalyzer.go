@@ -23,8 +23,9 @@ type gh interface {
 }
 
 type gotool interface {
-	// Cover tests a repository and returns the coverage.
-	Cover(repo *v1.Repository) (*v1.Cover, error)
+	CoverTotal(repo *v1.Repository) (float32, error)
+	CoverGinkgoReport(repo *v1.Repository) ([]*v1.GinkgoReportCover, error)
+	CoverGinkgoOutline(repo *v1.Repository) ([]*v1.GinkgoOutlineCover, error)
 }
 
 type Covalyzer struct {
@@ -64,14 +65,28 @@ func (c *Covalyzer) Run() (*v1.Covalyzer, error) {
 				return nil, fmt.Errorf("failed to checkout %v: %w", ts, err)
 			}
 
-			cover, err := c.gotool.Cover(repo)
+			total, err := c.gotool.CoverTotal(repo)
 			if err != nil {
-				return nil, fmt.Errorf("failed to test %v: %w", commit, err)
+				return nil, fmt.Errorf("failed to analyze go tool cover %v: %w", commit, err)
+			}
+
+			outline, err := c.gotool.CoverGinkgoOutline(repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to analyze ginkgo outline %v: %w", commit, err)
+			}
+
+			report, err := c.gotool.CoverGinkgoReport(repo)
+			if err != nil {
+				return nil, fmt.Errorf("failed to analyze ginkgo run %v: %w", commit, err)
 			}
 
 			rc.Coverages = append(rc.Coverages, &v1.Coverage{
 				Commit: commit,
-				Cover:  cover,
+				Cover: &v1.Cover{
+					Total:          total,
+					GinkgoOutlines: outline,
+					GinkgoReports:  report,
+				},
 			})
 		}
 		res.Repositories = append(res.Repositories, &rc)

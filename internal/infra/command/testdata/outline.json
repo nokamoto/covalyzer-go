@@ -1,0 +1,19 @@
+[
+    {
+        "nodes": [
+            {
+                "spec": true
+            },
+            {
+                "nodes": [
+                    {
+                        "spec": false
+                    },
+                    {
+                        "spec": true
+                    }
+                ]
+            }
+        ]
+    }
+]
