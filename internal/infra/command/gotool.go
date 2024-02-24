@@ -1,4 +1,4 @@
-package gotool
+package command
 
 import (
 	"bufio"
@@ -12,29 +12,30 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nokamoto/covalyzer-go/internal/infra/command"
 	"github.com/nokamoto/covalyzer-go/internal/util/xslices"
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
 	"github.com/onsi/ginkgo/v2/types"
 )
 
 type GoTool struct {
-	wd command.WorkingDir
+	wd     WorkingDir
+	runner runner
 }
 
-func NewGoTool(wd command.WorkingDir) *GoTool {
+func NewGoTool(wd WorkingDir) *GoTool {
 	return &GoTool{
-		wd: wd,
+		wd:     wd,
+		runner: &command{},
 	}
 }
 
 func (g *GoTool) testPackages(repo *v1.Repository) ([]string, error) {
-	var buf bytes.Buffer
-	if err := command.Run("go", "list", "-f", "{{.Dir}}", "./...")(g.wd.WithRepoDir(repo), command.WithStdout(&buf)); err != nil {
+	buf, err := g.runner.runO("go", xslices.Concat("list", "-f", "{{.Dir}}", "./..."), g.wd.withRepoDir(repo))
+	if err != nil {
 		return nil, err
 	}
 	var pkgs []string
-	scan := bufio.NewScanner(&buf)
+	scan := bufio.NewScanner(buf)
 	for scan.Scan() {
 		pkgs = append(pkgs, scan.Text())
 	}
@@ -53,9 +54,9 @@ func (g *GoTool) testPackages(repo *v1.Repository) ([]string, error) {
 	return pkgs, nil
 }
 
-func (g *GoTool) parseTotal(buf bytes.Buffer) (float32, error) {
+func (g *GoTool) parseTotal(buf *bytes.Buffer) (float32, error) {
 	var line string
-	scan := bufio.NewScanner(&buf)
+	scan := bufio.NewScanner(buf)
 	for scan.Scan() {
 		line = scan.Text()
 	}
@@ -85,8 +86,8 @@ func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCov
 			return err
 		}
 		if strings.HasSuffix(path, ".go") && !info.IsDir() {
-			var buf bytes.Buffer
-			if err := command.Run("ginkgo", "outline", "--format", "json", path)(command.WithStdout(&buf)); err != nil {
+			buf, err := g.runner.runO("ginkgo", xslices.Concat("outline", "--format", "json", path))
+			if err != nil {
 				return nil
 			}
 
@@ -134,9 +135,9 @@ func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCov
 func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoReportCover, error) {
 	const out = "report.json"
 	var res []*v1.GinkgoReportCover
-	var buf bytes.Buffer
 	for _, pkg := range repo.GetGinkgoPackages() {
-		if err := command.Run("ginkgo", "run", "--dry-run", fmt.Sprintf("--json-report=%s", out), pkg)(g.wd.WithRepoDir(repo), command.WithStdout(&buf)); err != nil {
+		err := g.runner.run("ginkgo", xslices.Concat("run", "--dry-run", fmt.Sprintf("--json-report=%s", out), pkg), g.wd.withRepoDir(repo))
+		if err != nil {
 			return nil, err
 		}
 
@@ -175,11 +176,11 @@ func (g *GoTool) Cover(repo *v1.Repository) (*v1.Cover, error) {
 	}
 
 	const out = "c.out"
-	if err := command.Run("go", xslices.Concat("test", "-coverprofile", out, list)...)(g.wd.WithRepoDir(repo)); err != nil {
+	if err := g.runner.run("go", xslices.Concat("test", "-coverprofile", out, list), g.wd.withRepoDir(repo)); err != nil {
 		return nil, err
 	}
-	var buf bytes.Buffer
-	if err := command.Run("go", "tool", "cover", "-func", out)(g.wd.WithRepoDir(repo), command.WithStdout(&buf)); err != nil {
+	buf, err := g.runner.runO("go", xslices.Concat("tool", "cover", "-func", out), g.wd.withRepoDir(repo))
+	if err != nil {
 		return nil, err
 	}
 

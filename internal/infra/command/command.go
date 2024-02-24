@@ -1,3 +1,4 @@
+//go:generate mockgen -source=$GOFILE -destination=${GOFILE}_mock_test.go -package=$GOPACKAGE
 package command
 
 import (
@@ -6,24 +7,42 @@ import (
 	"os/exec"
 )
 
-type Option func(*exec.Cmd)
+type option func(*exec.Cmd)
 
-// WithDir sets the working directory for the command.
-func WithDir(dir string) Option {
+type command struct{}
+
+type runner interface {
+	run(cmd string, args []string, opts ...option) error
+	runO(cmd string, args []string, opts ...option) (*bytes.Buffer, error)
+}
+
+func (*command) run(cmd string, args []string, opts ...option) error {
+	return run(cmd, args...)(opts...)
+}
+
+func (*command) runO(cmd string, args []string, opts ...option) (*bytes.Buffer, error) {
+	var buf bytes.Buffer
+	opts = append(opts, withStdout(&buf))
+	if err := run(cmd, args...)(opts...); err != nil {
+		return &buf, err
+	}
+	return &buf, nil
+}
+
+func withDir(dir string) option {
 	return func(c *exec.Cmd) {
 		c.Dir = dir
 	}
 }
 
-// WithStdout sets the stdout for the command to capture the output to a buffer.
-func WithStdout(buf *bytes.Buffer) Option {
+func withStdout(buf *bytes.Buffer) option {
 	return func(c *exec.Cmd) {
 		c.Stdout = newLogWriter(buf)
 	}
 }
 
-func Run(cmd string, args ...string) func(opts ...Option) error {
-	return func(opts ...Option) error {
+func run(cmd string, args ...string) func(opts ...option) error {
+	return func(opts ...option) error {
 		c := exec.Command(cmd, args...)
 		c.Stdout = newLogWriter(nil)
 		c.Stderr = newErrorLogWriter()
