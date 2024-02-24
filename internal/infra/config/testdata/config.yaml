@@ -1,0 +1,8 @@
+repositories:
+- owner: nokamoto
+  repo: covalyzer-go
+  ginkgo_packages:
+  - cmd/covalyzer-go-test
+timestamps:
+- "2024-02-01T00:00:00Z"
+- "2024-03-01T00:00:00Z"
