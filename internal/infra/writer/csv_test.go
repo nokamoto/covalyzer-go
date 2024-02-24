@@ -26,6 +26,7 @@ func testCSV(t *testing.T, tests []testcase, file func(*CSVWriter) string) {
 			sut := &CSVWriter{
 				file:        dir + "/covalyzer.csv",
 				outlineFile: dir + "/covalyzer-ginkgo-outline.csv",
+				reportFile:  dir + "/covalyzer-ginkgo-report.csv",
 			}
 			err := sut.Write(tt.config, tt.data)
 			if (err != nil) != tt.wantErr {
@@ -126,7 +127,7 @@ func TestCSVWriter_Write_ginkgo_outline(t *testing.T) {
 							{},
 							{
 								Cover: &v1.Cover{
-									Ginkgo: []*v1.GinkgoCover{
+									GinkgoOutlines: []*v1.GinkgoOutlineCover{
 										{
 											OutlineNodes: 1,
 										},
@@ -143,7 +144,7 @@ func TestCSVWriter_Write_ginkgo_outline(t *testing.T) {
 						Coverages: []*v1.Coverage{
 							{
 								Cover: &v1.Cover{
-									Ginkgo: []*v1.GinkgoCover{
+									GinkgoOutlines: []*v1.GinkgoOutlineCover{
 										{
 											OutlineNodes: 1,
 										},
@@ -168,4 +169,100 @@ func TestCSVWriter_Write_ginkgo_outline(t *testing.T) {
 		},
 	}
 	testCSV(t, tests, func(c *CSVWriter) string { return c.outlineFile })
+}
+
+func TestCSVWriter_Write_ginkgo_report(t *testing.T) {
+	tests := []testcase{
+		{
+			name: "ok",
+			config: &v1.Config{
+				Timestamps: []string{"2024-01-01T00:00:00Z", "2024-02-01T00:00:00Z"},
+			},
+			data: &v1.Covalyzer{
+				Repositories: []*v1.RepositoryCoverages{
+					{
+						Repository: &v1.Repository{
+							Owner: "foo",
+							Repo:  "bar",
+							GinkgoPackages: []string{
+								"test1",
+								"test2",
+							},
+						},
+						Coverages: []*v1.Coverage{
+							{},
+							{
+								Cover: &v1.Cover{
+									GinkgoReports: []*v1.GinkgoReportCover{
+										{
+											Package: "test1",
+											Suites: []*v1.GinkgoSuiteCover{
+												{
+													TotalSpecs: 1,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Repository: &v1.Repository{
+							Owner: "baz",
+							Repo:  "qux",
+							GinkgoPackages: []string{
+								"test1",
+								"test2",
+							},
+						},
+						Coverages: []*v1.Coverage{
+							{
+								Cover: &v1.Cover{
+									GinkgoReports: []*v1.GinkgoReportCover{
+										{
+											Package: "test1",
+											Suites: []*v1.GinkgoSuiteCover{
+												{
+													TotalSpecs: 1,
+												},
+												{
+													TotalSpecs: 2,
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								Cover: &v1.Cover{
+									GinkgoReports: []*v1.GinkgoReportCover{
+										{
+											Package: "test2",
+											Suites: []*v1.GinkgoSuiteCover{
+												{
+													TotalSpecs: 3,
+												},
+												{
+													TotalSpecs: 4,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: [][]string{
+				{"github", "repository", "package", "2024-01-01", "2024-02-01"},
+				{"", "foo/bar", "test1", "0", "1"},
+				{"", "foo/bar", "test2", "0", "0"},
+				{"", "baz/qux", "test1", "3", "0"},
+				{"", "baz/qux", "test2", "0", "7"},
+			},
+		},
+	}
+	testCSV(t, tests, func(c *CSVWriter) string { return c.reportFile })
 }
