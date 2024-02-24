@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -61,7 +60,6 @@ func (g *GoTool) parseTotal(buf *bytes.Buffer) (float32, error) {
 		line = scan.Text()
 	}
 	if err := scan.Err(); err != nil {
-		slog.Debug("failed to scan", "error", err)
 		return 0, fmt.Errorf("failed to scan: %w", err)
 	}
 
