@@ -12,17 +12,20 @@ import (
 type CSVWriter struct {
 	file        string
 	outlineFile string
+	reportFile  string
 }
 
 func NewCSVWriter() *CSVWriter {
 	return &CSVWriter{
 		file:        "covalyzer.csv",
 		outlineFile: "covalyzer-ginkgo-outline.csv",
+		reportFile:  "covalyzer-ginkgo-report.csv",
 	}
 }
 
-func (c *CSVWriter) header(config *v1.Config) ([]string, error) {
+func (c *CSVWriter) header(config *v1.Config, middle ...string) ([]string, error) {
 	row := []string{"github", "repository"}
+	row = append(row, middle...)
 	for _, ts := range config.GetTimestamps() {
 		d, err := time.Parse(time.RFC3339, ts)
 		if err != nil {
@@ -83,7 +86,7 @@ func (c *CSVWriter) writeGinkgoOutline(config *v1.Config, data *v1.Covalyzer) er
 		row = c.repositoryColumns(repo)
 		for _, coverage := range repo.GetCoverages() {
 			var nodes int32
-			for _, ginkgo := range coverage.GetCover().GetGinkgo() {
+			for _, ginkgo := range coverage.GetCover().GetGinkgoOutlines() {
 				nodes += ginkgo.GetOutlineNodes()
 			}
 			row = append(row, fmt.Sprintf("%d", nodes))
@@ -94,12 +97,46 @@ func (c *CSVWriter) writeGinkgoOutline(config *v1.Config, data *v1.Covalyzer) er
 	return c.writeFile(c.outlineFile, rows)
 }
 
+func (c *CSVWriter) writeGinkgoReport(config *v1.Config, data *v1.Covalyzer) error {
+	var rows [][]string
+	row, err := c.header(config, "package")
+	if err != nil {
+		return err
+	}
+	rows = append(rows, row)
+
+	for _, repo := range data.GetRepositories() {
+		for _, pkg := range repo.GetRepository().GetGinkgoPackages() {
+			row = c.repositoryColumns(repo)
+			row = append(row, pkg)
+			for _, coverage := range repo.GetCoverages() {
+				var total int32
+				for _, ginkgo := range coverage.GetCover().GetGinkgoReports() {
+					if ginkgo.GetPackage() != pkg {
+						continue
+					}
+					for _, suite := range ginkgo.GetSuites() {
+						total += suite.GetTotalSpecs()
+					}
+				}
+				row = append(row, fmt.Sprintf("%d", total))
+			}
+			rows = append(rows, row)
+		}
+	}
+
+	return c.writeFile(c.reportFile, rows)
+}
+
 func (c *CSVWriter) Write(config *v1.Config, data *v1.Covalyzer) error {
 	if err := c.writeGo(config, data); err != nil {
 		return fmt.Errorf("failed to write go: %w", err)
 	}
 	if err := c.writeGinkgoOutline(config, data); err != nil {
 		return fmt.Errorf("failed to write ginkgo outline: %w", err)
+	}
+	if err := c.writeGinkgoReport(config, data); err != nil {
+		return fmt.Errorf("failed to write ginkgo report: %w", err)
 	}
 	return nil
 }

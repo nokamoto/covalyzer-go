@@ -15,6 +15,7 @@ import (
 	"github.com/nokamoto/covalyzer-go/internal/infra/command"
 	"github.com/nokamoto/covalyzer-go/internal/util/xslices"
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
+	"github.com/onsi/ginkgo/v2/types"
 )
 
 type GoTool struct {
@@ -76,8 +77,8 @@ func (g *GoTool) parseTotal(buf bytes.Buffer) (float32, error) {
 	return float32(total), nil
 }
 
-func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoCover, error) {
-	var res []*v1.GinkgoCover
+func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCover, error) {
+	var res []*v1.GinkgoOutlineCover
 	dir := filepath.Join(string(g.wd), repo.GetRepo())
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -89,7 +90,7 @@ func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoCover, error) {
 				return nil
 			}
 
-			cover := v1.GinkgoCover{
+			cover := v1.GinkgoOutlineCover{
 				File: strings.TrimPrefix(path, dir+"/"),
 			}
 
@@ -130,6 +131,43 @@ func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoCover, error) {
 	return res, err
 }
 
+func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoReportCover, error) {
+	const out = "report.json"
+	var res []*v1.GinkgoReportCover
+	var buf bytes.Buffer
+	for _, pkg := range repo.GetGinkgoPackages() {
+		if err := command.Run("ginkgo", "run", "--dry-run", fmt.Sprintf("--json-report=%s", out), pkg)(g.wd.WithRepoDir(repo), command.WithStdout(&buf)); err != nil {
+			return nil, err
+		}
+
+		file := filepath.Join(string(g.wd), repo.GetRepo(), out)
+		bs, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read: %s: %w", file, err)
+		}
+
+		var report []types.Report
+		if err := json.Unmarshal(bs, &report); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal: %s: %w", file, err)
+		}
+
+		var suites []*v1.GinkgoSuiteCover
+		for _, r := range report {
+			suites = append(suites, &v1.GinkgoSuiteCover{
+				Description:      r.SuiteDescription,
+				TotalSpecs:       int32(r.PreRunStats.TotalSpecs),
+				SpecsThatWillRun: int32(r.PreRunStats.SpecsThatWillRun),
+			})
+		}
+
+		res = append(res, &v1.GinkgoReportCover{
+			Package: pkg,
+			Suites:  suites,
+		})
+	}
+	return res, nil
+}
+
 func (g *GoTool) Cover(repo *v1.Repository) (*v1.Cover, error) {
 	list, err := g.testPackages(repo)
 	if err != nil {
@@ -150,13 +188,19 @@ func (g *GoTool) Cover(repo *v1.Repository) (*v1.Cover, error) {
 		return nil, err
 	}
 
-	ginkgo, err := g.ginkgoCover(repo)
+	outline, err := g.ginkgoOutlineCover(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	report, err := g.ginkgoCover(repo)
 	if err != nil {
 		return nil, err
 	}
 
 	return &v1.Cover{
-		Total:  float32(total),
-		Ginkgo: ginkgo,
+		Total:          float32(total),
+		GinkgoOutlines: outline,
+		GinkgoReports:  report,
 	}, nil
 }
