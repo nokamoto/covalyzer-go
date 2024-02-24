@@ -1,22 +1,23 @@
-package gh
+package command
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
-	"github.com/nokamoto/covalyzer-go/internal/infra/command"
 	"github.com/nokamoto/covalyzer-go/internal/usecase"
+	"github.com/nokamoto/covalyzer-go/internal/util/xslices"
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
 )
 
 type GitHub struct {
-	wd command.WorkingDir
+	wd     WorkingDir
+	runner runner
 }
 
-func NewGitHub(wd command.WorkingDir) (*GitHub, error) {
+func NewGitHub(wd WorkingDir) (*GitHub, error) {
 	return &GitHub{
-		wd: wd,
+		wd:     wd,
+		runner: &command{},
 	}, nil
 }
 
@@ -26,16 +27,16 @@ func (g *GitHub) Clone(repo *v1.Repository) error {
 		github = fmt.Sprintf("%s/", github)
 	}
 	arg := fmt.Sprintf("%s%s/%s", github, repo.GetOwner(), repo.GetRepo())
-	if err := command.Run("gh", "repo", "clone", arg)(g.wd.WithDir()); err != nil {
+	if err := g.runner.run("gh", xslices.Concat("repo", "clone", arg), g.wd.withDir()); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (g *GitHub) recentCommit(repo *v1.Repository, timestamp string) (*v1.Commit, error) {
-	var res bytes.Buffer
 	api := fmt.Sprintf("/repos/%s/%s/commits?per_page=1&until=%s", repo.GetOwner(), repo.GetRepo(), timestamp)
-	if err := command.Run("gh", "api", api)(g.wd.WithRepoDir(repo), command.WithStdout(&res)); err != nil {
+	res, err := g.runner.runO("gh", xslices.Concat("api", api), g.wd.withRepoDir(repo))
+	if err != nil {
 		return nil, err
 	}
 	type commit struct {
@@ -61,7 +62,7 @@ func (g *GitHub) Checkout(repo *v1.Repository, timestamp string) (*v1.Commit, er
 	if err != nil {
 		return nil, err
 	}
-	if err := command.Run("git", "checkout", commit.GetSha())(g.wd.WithRepoDir(repo)); err != nil {
+	if err := g.runner.run("git", xslices.Concat("checkout", commit.GetSha()), g.wd.withRepoDir(repo)); err != nil {
 		return nil, err
 	}
 	return commit, nil

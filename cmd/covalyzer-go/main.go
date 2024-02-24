@@ -6,8 +6,6 @@ import (
 
 	"github.com/nokamoto/covalyzer-go/internal/infra/command"
 	"github.com/nokamoto/covalyzer-go/internal/infra/config"
-	"github.com/nokamoto/covalyzer-go/internal/infra/gh"
-	"github.com/nokamoto/covalyzer-go/internal/infra/gotool"
 	"github.com/nokamoto/covalyzer-go/internal/infra/writer"
 	"github.com/nokamoto/covalyzer-go/internal/usecase"
 )
@@ -38,12 +36,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	gh, err := gh.NewGitHub(wd)
+	gh, err := command.NewGitHub(wd)
 	if err != nil {
 		slog.Error("failed to create a GitHub client", "error", err)
 		os.Exit(1)
 	}
-	gt := gotool.NewGoTool(wd)
+	gt := command.NewGoTool(wd)
 
 	res, err := usecase.NewCovalyzer(config, gh, gt).Run()
 	if err != nil {
