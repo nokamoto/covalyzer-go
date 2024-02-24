@@ -26,7 +26,7 @@ func Build() error {
 		then("go", "install", "go.uber.org/mock/mockgen@latest").
 		then("go", "generate", "./...").
 		then("go", "mod", "download").
-		thenV("go", xslices.Concat("test", ginkgoExcluded)...).
+		thenV("go", xslices.Concat("test", "-coverprofile=coverage.out", ginkgoExcluded)...).
 		then("go", "mod", "tidy").
 		run()
 }
