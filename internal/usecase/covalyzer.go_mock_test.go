@@ -91,17 +91,47 @@ func (m *Mockgotool) EXPECT() *MockgotoolMockRecorder {
 	return m.recorder
 }
 
-// Cover mocks base method.
-func (m *Mockgotool) Cover(repo *v1.Repository) (*v1.Cover, error) {
+// CoverGinkgoOutline mocks base method.
+func (m *Mockgotool) CoverGinkgoOutline(repo *v1.Repository) ([]*v1.GinkgoOutlineCover, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Cover", repo)
-	ret0, _ := ret[0].(*v1.Cover)
+	ret := m.ctrl.Call(m, "CoverGinkgoOutline", repo)
+	ret0, _ := ret[0].([]*v1.GinkgoOutlineCover)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Cover indicates an expected call of Cover.
-func (mr *MockgotoolMockRecorder) Cover(repo any) *gomock.Call {
+// CoverGinkgoOutline indicates an expected call of CoverGinkgoOutline.
+func (mr *MockgotoolMockRecorder) CoverGinkgoOutline(repo any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cover", reflect.TypeOf((*Mockgotool)(nil).Cover), repo)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CoverGinkgoOutline", reflect.TypeOf((*Mockgotool)(nil).CoverGinkgoOutline), repo)
+}
+
+// CoverGinkgoReport mocks base method.
+func (m *Mockgotool) CoverGinkgoReport(repo *v1.Repository) ([]*v1.GinkgoReportCover, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CoverGinkgoReport", repo)
+	ret0, _ := ret[0].([]*v1.GinkgoReportCover)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CoverGinkgoReport indicates an expected call of CoverGinkgoReport.
+func (mr *MockgotoolMockRecorder) CoverGinkgoReport(repo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CoverGinkgoReport", reflect.TypeOf((*Mockgotool)(nil).CoverGinkgoReport), repo)
+}
+
+// CoverTotal mocks base method.
+func (m *Mockgotool) CoverTotal(repo *v1.Repository) (float32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CoverTotal", repo)
+	ret0, _ := ret[0].(float32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CoverTotal indicates an expected call of CoverTotal.
+func (mr *MockgotoolMockRecorder) CoverTotal(repo any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CoverTotal", reflect.TypeOf((*Mockgotool)(nil).CoverTotal), repo)
 }

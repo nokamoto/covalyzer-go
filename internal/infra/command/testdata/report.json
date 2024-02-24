@@ -1,0 +1,16 @@
+[
+    {
+        "SuiteDescription": "suite1",
+        "PreRunStats": {
+            "TotalSpecs": 1,
+            "SpecsThatWillRun": 2
+        }
+    },
+    {
+        "SuiteDescription": "suite2",
+        "PreRunStats": {
+            "TotalSpecs": 3,
+            "SpecsThatWillRun": 4
+        }
+    }
+]

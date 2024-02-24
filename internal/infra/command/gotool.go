@@ -76,7 +76,7 @@ func (g *GoTool) parseTotal(buf *bytes.Buffer) (float32, error) {
 	return float32(total), nil
 }
 
-func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCover, error) {
+func (g *GoTool) CoverGinkgoOutline(repo *v1.Repository) ([]*v1.GinkgoOutlineCover, error) {
 	var res []*v1.GinkgoOutlineCover
 	dir := filepath.Join(string(g.wd), repo.GetRepo())
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -86,6 +86,7 @@ func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCov
 		if strings.HasSuffix(path, ".go") && !info.IsDir() {
 			buf, err := g.runner.runO("ginkgo", xslices.Concat("outline", "--format", "json", path))
 			if err != nil {
+				// ignore error because ginkgo outline may fail if there is no test
 				return nil
 			}
 
@@ -95,7 +96,6 @@ func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCov
 
 			// https://github.com/onsi/ginkgo/blob/cd418b74c1e8502b305aab84e882516a6335a0e7/ginkgo/outline/outline.go#L70-L72
 			type metadata struct {
-				Name string
 				Spec bool
 			}
 			type node struct {
@@ -130,7 +130,7 @@ func (g *GoTool) ginkgoOutlineCover(repo *v1.Repository) ([]*v1.GinkgoOutlineCov
 	return res, err
 }
 
-func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoReportCover, error) {
+func (g *GoTool) CoverGinkgoReport(repo *v1.Repository) ([]*v1.GinkgoReportCover, error) {
 	const out = "report.json"
 	var res []*v1.GinkgoReportCover
 	for _, pkg := range repo.GetGinkgoPackages() {
@@ -167,39 +167,20 @@ func (g *GoTool) ginkgoCover(repo *v1.Repository) ([]*v1.GinkgoReportCover, erro
 	return res, nil
 }
 
-func (g *GoTool) Cover(repo *v1.Repository) (*v1.Cover, error) {
+func (g *GoTool) CoverTotal(repo *v1.Repository) (float32, error) {
 	list, err := g.testPackages(repo)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	const out = "c.out"
 	if err := g.runner.run("go", xslices.Concat("test", "-coverprofile", out, list), g.wd.withRepoDir(repo)); err != nil {
-		return nil, err
+		return 0, err
 	}
 	buf, err := g.runner.runO("go", xslices.Concat("tool", "cover", "-func", out), g.wd.withRepoDir(repo))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	total, err := g.parseTotal(buf)
-	if err != nil {
-		return nil, err
-	}
-
-	outline, err := g.ginkgoOutlineCover(repo)
-	if err != nil {
-		return nil, err
-	}
-
-	report, err := g.ginkgoCover(repo)
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1.Cover{
-		Total:          float32(total),
-		GinkgoOutlines: outline,
-		GinkgoReports:  report,
-	}, nil
+	return g.parseTotal(buf)
 }
