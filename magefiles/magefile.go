@@ -33,6 +33,7 @@ func Build() error {
 
 func Install() error {
 	return do("go", "install", "./cmd/covalyzer-go").
+		then("go", "install", "github.com/onsi/ginkgo/v2/ginkgo@latest").
 		thenWith(map[string]string{"DEBUG": "1"}, "covalyzer-go").
 		run()
 }

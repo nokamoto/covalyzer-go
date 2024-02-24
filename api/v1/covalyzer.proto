@@ -10,8 +10,15 @@ message Commit {
   string sha = 1;
 }
 
+message GinkgoCover {
+  string file = 1;
+  // A number of specs listed in `ginkgo outline`.
+  int32 outline_nodes = 2;
+}
+
 message Cover {
   float total = 1;
+  repeated GinkgoCover ginkgo = 2;
 }
 
 message Coverage {
