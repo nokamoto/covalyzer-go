@@ -93,7 +93,7 @@ func TestGoTool_CoverTotal(t *testing.T) {
 			want: 12.3,
 		},
 		{
-			name: "failed to go list",
+			name: "return 0 if go list failed",
 			repo: &v1.Repository{
 				Owner: "foo",
 				Repo:  "bar",
@@ -101,7 +101,17 @@ func TestGoTool_CoverTotal(t *testing.T) {
 			mock: func(m *Mockrunner, wd WorkingDir) {
 				m.EXPECT().runO(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, internalErr)
 			},
-			wantErr: internalErr,
+		},
+		{
+			name: "return 0 if go test failed",
+			repo: &v1.Repository{
+				Owner: "foo",
+				Repo:  "bar",
+			},
+			mock: func(m *Mockrunner, wd WorkingDir) {
+				m.EXPECT().runO(gomock.Any(), gomock.Any(), gomock.Any()).Return(bytes.NewBufferString("a"), nil)
+				m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalErr)
+			},
 		},
 	}
 
@@ -318,16 +328,41 @@ func TestGoTool_CoverGinkgoReport(t *testing.T) {
 			},
 		},
 		{
-			name: "failed to ginkgo run",
+			name: "continue even if ginkgo run failed",
 			repo: &v1.Repository{
 				Owner:          "foo",
 				Repo:           "bar",
-				GinkgoPackages: []string{"package1"},
+				GinkgoPackages: []string{"package1", "package2"},
+			},
+			filesystem: func(wd WorkingDir) {
+				_ = os.WriteFile(filepath.Join(string(wd), "bar", "report.json"), reportJSON, 0644)
 			},
 			mock: func(m *Mockrunner, wd WorkingDir) {
-				m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalErr)
+				gomock.InOrder(
+					m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalErr),
+					m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+				)
 			},
-			wantErr: internalErr,
+			want: []*v1.GinkgoReportCover{
+				{
+					Package: "package1",
+				},
+				{
+					Package: "package2",
+					Suites: []*v1.GinkgoSuiteCover{
+						{
+							Description:      "suite1",
+							TotalSpecs:       1,
+							SpecsThatWillRun: 2,
+						},
+						{
+							Description:      "suite2",
+							TotalSpecs:       3,
+							SpecsThatWillRun: 4,
+						},
+					},
+				},
+			},
 		},
 	}
 

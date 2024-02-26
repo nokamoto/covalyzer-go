@@ -5,4 +5,7 @@ repositories:
   - cmd/covalyzer-go-test
 timestamps:
 - "2024-02-01T00:00:00Z"
+# https://github.com/nokamoto/covalyzer-go/commit/76cfe819e99b779df117cc8c5725c8e4679c397b
+# empty repository
+- "2024-02-23T06:10:00Z"
 - "2024-03-01T00:00:00Z"
