@@ -23,9 +23,14 @@ timestamps:
 - "2024-03-01T00:00:00Z"
 ```
 
-Aggregate and analyze the nokamoto/covalyer-go repository by running `go run ./cmd/covlayzer-go`.
+Aggregate and analyze code coverage report for the nokamoto/covalyer-go repository by running `go run ./cmd/covlayzer-go`.
 
+It will output the following summaries:
+- [go tool cover](./examples/covalyzer.csv) 
+- [ginkgo outline](./examples/covalyzer-ginkgo-outline.csv)
+- [ginkgo run --json-report](./examples/covalyzer-ginkgo-report.csv)
 
+For more details, see following proto files:
 - [config](./api/v1/config.proto)
 - [output](./api/v1/covalyzer.proto)
 
