@@ -31,7 +31,8 @@ func NewGoTool(wd WorkingDir) *GoTool {
 func (g *GoTool) testPackages(repo *v1.Repository) ([]string, error) {
 	buf, err := g.runner.runO("go", xslices.Concat("list", "-f", "{{.Dir}}", "./..."), g.wd.withRepoDir(repo))
 	if err != nil {
-		return nil, err
+		// ignore error because go list may fail if the repository is not a go project
+		return nil, nil
 	}
 	var pkgs []string
 	scan := bufio.NewScanner(buf)
@@ -136,7 +137,11 @@ func (g *GoTool) CoverGinkgoReport(repo *v1.Repository) ([]*v1.GinkgoReportCover
 	for _, pkg := range repo.GetGinkgoPackages() {
 		err := g.runner.run("ginkgo", xslices.Concat("run", "--dry-run", fmt.Sprintf("--json-report=%s", out), pkg), g.wd.withRepoDir(repo))
 		if err != nil {
-			return nil, err
+			// ignore error because ginkgo run may fail if there is no test
+			res = append(res, &v1.GinkgoReportCover{
+				Package: pkg,
+			})
+			continue
 		}
 
 		file := filepath.Join(string(g.wd), repo.GetRepo(), out)
@@ -172,10 +177,14 @@ func (g *GoTool) CoverTotal(repo *v1.Repository) (float32, error) {
 	if err != nil {
 		return 0, err
 	}
+	if len(list) == 0 {
+		return 0, nil
+	}
 
 	const out = "c.out"
 	if err := g.runner.run("go", xslices.Concat("test", "-coverprofile", out, list), g.wd.withRepoDir(repo)); err != nil {
-		return 0, err
+		// ignore error because go test may fail if the repository is not a go project
+		return 0, nil
 	}
 	buf, err := g.runner.runO("go", xslices.Concat("tool", "cover", "-func", out), g.wd.withRepoDir(repo))
 	if err != nil {
