@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"slices"
 	"strings"
 
@@ -32,10 +34,25 @@ func Build() error {
 }
 
 func Install() error {
-	return do("go", "install", "./cmd/covalyzer-go").
+	err := do("go", "install", "./cmd/covalyzer-go").
 		then("go", "install", "github.com/onsi/ginkgo/v2/ginkgo@latest").
 		thenWith(map[string]string{"DEBUG": "1"}, "covalyzer-go").
 		run()
+	if err != nil {
+		return err
+	}
+	examples := []string{
+		"covalyzer.csv",
+		"covalyzer-ginkgo-outline.csv",
+		"covalyzer-ginkgo-report.csv",
+	}
+	for _, ex := range examples {
+		fmt.Printf("mv %s examples/%s\n", ex, ex)
+		if err := os.Rename(ex, fmt.Sprintf("examples/%s", ex)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func E2e() error {
