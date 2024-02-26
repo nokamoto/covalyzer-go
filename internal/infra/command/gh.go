@@ -34,8 +34,15 @@ func (g *GitHub) Clone(repo *v1.Repository) error {
 }
 
 func (g *GitHub) recentCommit(repo *v1.Repository, timestamp string) (*v1.Commit, error) {
+	var opts []option
+	opts = append(opts, g.wd.withRepoDir(repo))
+	if repo.GetGh() != "" {
+		env := map[string]string{}
+		env["GH_HOST"] = repo.GetGh()
+		opts = append(opts, withEnv(env))
+	}
 	api := fmt.Sprintf("/repos/%s/%s/commits?per_page=1&until=%s", repo.GetOwner(), repo.GetRepo(), timestamp)
-	res, err := g.runner.runO("gh", xslices.Concat("api", api), g.wd.withRepoDir(repo))
+	res, err := g.runner.runO("gh", xslices.Concat("api", api), opts...)
 	if err != nil {
 		return nil, err
 	}

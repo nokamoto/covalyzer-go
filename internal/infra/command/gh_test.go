@@ -118,6 +118,38 @@ func TestGitHub_Checkout(t *testing.T) {
 			},
 		},
 		{
+			name: "ok with ghe",
+			repo: &v1.Repository{
+				Gh:    "example.com",
+				Owner: "foo",
+				Repo:  "bar",
+			},
+			mock: func(m *Mockrunner) {
+				m.EXPECT().runO(
+					"gh",
+					[]string{"api", "/repos/foo/bar/commits?per_page=1&until=2024-02-01T00:00:00Z"},
+					newWithRepoDirMatcher(wd, &v1.Repository{
+						Owner: "foo",
+						Repo:  "bar",
+					}),
+					newWithEnvMatcher(map[string]string{
+						"GH_HOST": "example.com",
+					}),
+				).Return(bytes.NewBufferString(`[{"sha":"0"}]`), nil)
+				m.EXPECT().run(
+					"git",
+					[]string{"checkout", "0"},
+					newWithRepoDirMatcher(wd, &v1.Repository{
+						Owner: "foo",
+						Repo:  "bar",
+					}),
+				).Return(nil)
+			},
+			want: &v1.Commit{
+				Sha: "0",
+			},
+		},
+		{
 			name: "failed to gh api",
 			repo: &v1.Repository{
 				Owner: "foo",
