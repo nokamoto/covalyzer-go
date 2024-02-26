@@ -3,6 +3,7 @@ package command
 
 import (
 	"bytes"
+	"fmt"
 	"log/slog"
 	"os/exec"
 )
@@ -38,6 +39,16 @@ func withDir(dir string) option {
 func withStdout(buf *bytes.Buffer) option {
 	return func(c *exec.Cmd) {
 		c.Stdout = newLogWriter(buf)
+	}
+}
+
+func withEnv(v map[string]string) option {
+	return func(c *exec.Cmd) {
+		var env []string
+		for k, v := range v {
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
+		}
+		c.Env = env
 	}
 }
 
