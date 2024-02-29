@@ -15,8 +15,8 @@ func Build() error {
 		return err
 	}
 
-	ginkgoExcluded := slices.DeleteFunc(list, func(s string) bool {
-		return strings.Contains(s, "covalyzer-go-test")
+	unitTests := slices.DeleteFunc(list, func(s string) bool {
+		return strings.Contains(s, "covalyzer-go-test") || strings.Contains(s, "examples")
 	})
 
 	return do("go", "install", "golang.org/x/tools/cmd/goimports@latest").
@@ -28,7 +28,7 @@ func Build() error {
 		then("go", "install", "go.uber.org/mock/mockgen@latest").
 		then("go", "generate", "./...").
 		then("go", "mod", "download").
-		thenV("go", xslices.Concat("test", "-coverprofile=coverage.out", ginkgoExcluded)...).
+		thenV("go", xslices.Concat("test", "-coverprofile=coverage.out", unitTests)...).
 		then("go", "mod", "tidy").
 		run()
 }
