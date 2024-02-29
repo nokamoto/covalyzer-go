@@ -27,17 +27,21 @@ func TestGoTool_CoverTotal(t *testing.T) {
 	internalErr := errors.New("internal")
 
 	tests := []struct {
-		name    string
-		repo    *v1.Repository
-		mock    func(*Mockrunner, WorkingDir)
-		want    float32
-		wantErr error
+		name       string
+		repo       *v1.Repository
+		filesystem func(dir string)
+		mock       func(*Mockrunner, WorkingDir)
+		want       float32
+		wantErr    error
 	}{
 		{
 			name: "ok",
 			repo: &v1.Repository{
 				Owner: "foo",
 				Repo:  "bar",
+			},
+			filesystem: func(dir string) {
+				_ = os.WriteFile(filepath.Join(dir, "c.out"), []byte{}, 0644)
 			},
 			mock: func(m *Mockrunner, wd WorkingDir) {
 				opt := newWithRepoDirMatcher(wd, &v1.Repository{
@@ -75,6 +79,9 @@ func TestGoTool_CoverTotal(t *testing.T) {
 				Repo:           "bar",
 				GinkgoPackages: []string{"package1"},
 			},
+			filesystem: func(dir string) {
+				_ = os.WriteFile(filepath.Join(dir, "c.out"), []byte{}, 0644)
+			},
 			mock: func(m *Mockrunner, wd WorkingDir) {
 				m.EXPECT().runO(gomock.Any(), gomock.Any(), gomock.Any()).Return(
 					bytes.NewBufferString("package1\npackage2\n"),
@@ -103,15 +110,35 @@ func TestGoTool_CoverTotal(t *testing.T) {
 			},
 		},
 		{
-			name: "return 0 if go test failed",
+			name: "continue if go test failed",
+			repo: &v1.Repository{
+				Owner: "foo",
+				Repo:  "bar",
+			},
+			filesystem: func(dir string) {
+				_ = os.WriteFile(filepath.Join(dir, "c.out"), []byte{}, 0644)
+			},
+			mock: func(m *Mockrunner, wd WorkingDir) {
+				m.EXPECT().runO(gomock.Any(), gomock.Any(), gomock.Any()).Return(bytes.NewBufferString("a"), nil)
+				m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalErr)
+				m.EXPECT().runO(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+					bytes.NewBufferString("...\nxxx xxx 12.3%\n"),
+					nil,
+				)
+			},
+			want: 12.3,
+		},
+		{
+			name: "error if cover profile not found",
 			repo: &v1.Repository{
 				Owner: "foo",
 				Repo:  "bar",
 			},
 			mock: func(m *Mockrunner, wd WorkingDir) {
 				m.EXPECT().runO(gomock.Any(), gomock.Any(), gomock.Any()).Return(bytes.NewBufferString("a"), nil)
-				m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalErr)
+				m.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			},
+			wantErr: errCoverProfileNotFound,
 		},
 	}
 
@@ -127,6 +154,9 @@ func TestGoTool_CoverTotal(t *testing.T) {
 
 			repoDir := filepath.Join(string(wd), tt.repo.GetRepo())
 			_ = os.MkdirAll(repoDir, 0755)
+			if tt.filesystem != nil {
+				tt.filesystem(repoDir)
+			}
 
 			if tt.mock != nil {
 				tt.mock(m, wd)
