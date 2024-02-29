@@ -5,12 +5,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/nokamoto/covalyzer-go/internal/util/xslices"
 	v1 "github.com/nokamoto/covalyzer-go/pkg/api/v1"
 	"github.com/onsi/ginkgo/v2/types"
@@ -19,12 +21,14 @@ import (
 type GoTool struct {
 	wd     WorkingDir
 	runner runner
+	random func() string
 }
 
 func NewGoTool(wd WorkingDir) *GoTool {
 	return &GoTool{
 		wd:     wd,
 		runner: &command{},
+		random: uuid.NewString,
 	}
 }
 
@@ -172,6 +176,10 @@ func (g *GoTool) CoverGinkgoReport(repo *v1.Repository) ([]*v1.GinkgoReportCover
 	return res, nil
 }
 
+var (
+	errCoverProfileNotFound = fmt.Errorf("failed to write cover profile")
+)
+
 func (g *GoTool) CoverTotal(repo *v1.Repository) (float32, error) {
 	list, err := g.testPackages(repo)
 	if err != nil {
@@ -181,11 +189,18 @@ func (g *GoTool) CoverTotal(repo *v1.Repository) (float32, error) {
 		return 0, nil
 	}
 
-	const out = "c.out"
-	if err := g.runner.run("go", xslices.Concat("test", "-coverprofile", out, list), g.wd.withRepoDir(repo)); err != nil {
-		// ignore error because go test may fail if the repository is not a go project
-		return 0, nil
+	out := "c.out"
+	if g.random != nil {
+		out = fmt.Sprintf("%s.%s", out, g.random())
 	}
+	if err := g.runner.run("go", xslices.Concat("test", "-coverprofile", out, list), g.wd.withRepoDir(repo)); err != nil {
+		slog.Debug("[ignored] failed to run go test -coverprofile", "profile", out, "err", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(string(g.wd), repo.GetRepo(), out)); err != nil {
+		return 0, fmt.Errorf("%w: %w", errCoverProfileNotFound, err)
+	}
+
 	buf, err := g.runner.runO("go", xslices.Concat("tool", "cover", "-func", out), g.wd.withRepoDir(repo))
 	if err != nil {
 		return 0, err
