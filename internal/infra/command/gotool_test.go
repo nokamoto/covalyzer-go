@@ -204,15 +204,15 @@ func TestGoTool_CoverGinkgoOutline(t *testing.T) {
 			},
 			mock: func(m *Mockrunner, wd WorkingDir) {
 				m.EXPECT().runO(
-					"ginkgo",
-					[]string{"outline", "--format", "json", filepath.Join(string(wd), "bar/main.go")},
+					"go",
+					[]string{"run", "github.com/onsi/ginkgo/v2/ginkgo", "outline", "--format", "json", filepath.Join(string(wd), "bar/main.go")},
 				).Return(
 					bytes.NewBufferString("[]"),
 					nil,
 				)
 				m.EXPECT().runO(
-					"ginkgo",
-					[]string{"outline", "--format", "json", filepath.Join(string(wd), "bar/dir1/main.go")},
+					"go",
+					[]string{"run", "github.com/onsi/ginkgo/v2/ginkgo", "outline", "--format", "json", filepath.Join(string(wd), "bar/dir1/main.go")},
 				).Return(
 					bytes.NewBufferString(outlineJSON),
 					nil,
@@ -241,8 +241,8 @@ func TestGoTool_CoverGinkgoOutline(t *testing.T) {
 			},
 			mock: func(m *Mockrunner, wd WorkingDir) {
 				m.EXPECT().runO(
-					"ginkgo",
-					[]string{"outline", "--format", "json", filepath.Join(string(wd), "bar/main.go")},
+					"go",
+					[]string{"run", "github.com/onsi/ginkgo/v2/ginkgo", "outline", "--format", "json", filepath.Join(string(wd), "bar/main.go")},
 				).Return(
 					nil,
 					errors.New("internal"),
@@ -313,8 +313,8 @@ func TestGoTool_CoverGinkgoReport(t *testing.T) {
 					Repo:  "bar",
 				})
 				m.EXPECT().run(
-					"ginkgo",
-					[]string{"run", "--dry-run", "--json-report=report.json", "package1"},
+					"go",
+					[]string{"run", "github.com/onsi/ginkgo/v2/ginkgo", "run", "--dry-run", "--json-report=report.json", "package1"},
 					opt,
 				).Return(
 					nil,

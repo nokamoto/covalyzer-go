@@ -81,6 +81,8 @@ func (g *GoTool) parseTotal(buf *bytes.Buffer) (float32, error) {
 	return float32(total), nil
 }
 
+var ginkgo = []string{"run", "github.com/onsi/ginkgo/v2/ginkgo"}
+
 func (g *GoTool) CoverGinkgoOutline(repo *v1.Repository) ([]*v1.GinkgoOutlineCover, error) {
 	var res []*v1.GinkgoOutlineCover
 	dir := filepath.Join(string(g.wd), repo.GetRepo())
@@ -89,7 +91,7 @@ func (g *GoTool) CoverGinkgoOutline(repo *v1.Repository) ([]*v1.GinkgoOutlineCov
 			return err
 		}
 		if strings.HasSuffix(path, ".go") && !info.IsDir() {
-			buf, err := g.runner.runO("ginkgo", xslices.Concat("outline", "--format", "json", path))
+			buf, err := g.runner.runO("go", xslices.Concat(ginkgo, "outline", "--format", "json", path))
 			if err != nil {
 				// ignore error because ginkgo outline may fail if there is no test
 				return nil
@@ -139,7 +141,7 @@ func (g *GoTool) CoverGinkgoReport(repo *v1.Repository) ([]*v1.GinkgoReportCover
 	const out = "report.json"
 	var res []*v1.GinkgoReportCover
 	for _, pkg := range repo.GetGinkgoPackages() {
-		err := g.runner.run("ginkgo", xslices.Concat("run", "--dry-run", fmt.Sprintf("--json-report=%s", out), pkg), g.wd.withRepoDir(repo))
+		err := g.runner.run("go", xslices.Concat(ginkgo, "run", "--dry-run", fmt.Sprintf("--json-report=%s", out), pkg), g.wd.withRepoDir(repo))
 		if err != nil {
 			// ignore error because ginkgo run may fail if there is no test
 			res = append(res, &v1.GinkgoReportCover{

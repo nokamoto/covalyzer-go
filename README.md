@@ -6,10 +6,6 @@ covalyzer-go is a tool for aggregating and analyzing code coverage reports in go
 
 ## Getting started
 
-### Prerequisites
-- go
-- ginkgo (if specified `ginkgo_packages`)
-
 ### Example config.yaml
 
 ```yaml
