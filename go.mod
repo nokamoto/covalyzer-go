@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/magefile/mage v1.15.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
